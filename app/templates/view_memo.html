@@ -1,0 +1,143 @@
+<div class="task-detail-wrapper">
+    <div class="task-detail-header">
+        <h2>{{ task.title }}</h2>
+        <button type="button" class="close-detail" onclick="closeDetail()">×</button>
+    </div>
+    
+    <div class="task-detail-content">
+        <!-- 詳細表示モード -->
+        <div id="view-mode" class="detail-mode">
+            <div class="detail-section">
+                <h3>ジャンル</h3>
+                <p>{{ task.genre.name if task.genre else '未設定' }}</p>
+            </div>
+            
+            <div class="detail-section">
+                <h3>説明</h3>
+                <p>{{ task.description if task.description else '説明がありません' }}</p>
+            </div>
+            
+            <div class="detail-section">
+                <h3>完了状態</h3>
+                <p>
+                    {% if is_completed %}
+                        <span class="badge badge-completed">✓ 完了</span>
+                    {% else %}
+                        <span class="badge badge-pending">未完了</span>
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="detail-section">
+                <h3>過去1ヶ月の達成率</h3>
+                <div class="achievement-stats">
+                    <div class="achievement-rate">
+                        <div class="rate-number">{{ completion_rate }}%</div>
+                        <div class="rate-label">達成率</div>
+                    </div>
+                    <div class="achievement-details">
+                        <p>完了日数: <strong>{{ completed_count }}日</strong></p>
+                        <p>期間: {{ thirty_days_ago }} ～ {{ today_date }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h3>実行履歴（過去1ヶ月）</h3>
+                <div class="logs-calendar">
+                    {% set current_date = thirty_days_ago %}
+                    {% for i in range(31) %}
+                        {% set display_date = thirty_days_ago + timedelta(days=i) %}
+                        <div class="log-day {% if display_date in logs_by_date %}completed-day{% else %}pending-day{% endif %}">
+                            <div class="log-day-date">{{ display_date.strftime('%m/%d') }}</div>
+                            <div class="log-day-status">
+                                {% if display_date in logs_by_date %}
+                                    ✓
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="detail-actions">
+                <button type="button" class="btn btn-primary" onclick="toggleEditMode()">変更</button>
+                <form method="POST" action="{{ url_for('delete_task', task_id=task.task_id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('このタスクを削除してもよろしいですか？');">削除</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 編集モード -->
+        <div id="edit-mode" class="detail-mode" style="display: none;">
+            <form method="POST" action="{{ url_for('edit_task', task_id=task.task_id) }}" id="edit-form">
+                <div class="form-group">
+                    <label for="title">タイトル</label>
+                    <input type="text" id="title" name="title" value="{{ task.title }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">説明</label>
+                    <textarea id="description" name="description" rows="4">{{ task.description if task.description else '' }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="genre_id">ジャンル</label>
+                    <select id="genre_id" name="genre_id">
+                        <option value="">選択してください</option>
+                        {% for genre in genres %}
+                            <option value="{{ genre.genre_id }}" {% if task.genre_id == genre.genre_id %}selected{% endif %}>
+                                {{ genre.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>曜日指定</label>
+                    <div class="checkbox-group">
+                        {% set weekday_names = ['月', '火', '水', '木', '金', '土', '日'] %}
+                        {% for i in range(7) %}
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="weekdays" value="{{ i }}" {% if i in task_weekdays %}checked{% endif %}>
+                                {{ weekday_names[i] }}曜日
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="toggleEditMode()">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleEditMode() {
+    const viewMode = document.getElementById('view-mode');
+    const editMode = document.getElementById('edit-mode');
+    
+    if (editMode.style.display === 'none') {
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+    } else {
+        viewMode.style.display = 'block';
+        editMode.style.display = 'none';
+    }
+}
+
+function closeDetail() {
+    const mainContent = document.querySelector('.main-content');
+    mainContent.innerHTML = `
+        <div class="content-placeholder">
+            <h2>タスクを選択してください</h2>
+            <p>左側のリストからタスクを選択すると、詳細情報が表示されます。</p>
+        </div>
+    `;
+}
+</script>

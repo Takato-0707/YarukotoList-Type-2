@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>やることリストType-2</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- エラーメッセージ表示エリア -->
+        {% if session.get('error') %}
+            <div class="error-banner" id="errorBanner">
+                <div class="error-message">
+                    <strong>エラー:</strong> {{ session.get('error') }}
+                    <button type="button" class="error-close" onclick="closeErrorBanner()">×</button>
+                </div>
+            </div>
+        {% endif %}
+        <!-- 左側：タスク一覧（30%） -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>今日のやることリスト</h1>
+                <!-- 完了率表示とプログレスバー -->
+                {% set assigned_today_count = assigned_today_task_ids|length %}
+                {% set completed_today_count = completed_task_ids|select('in', assigned_today_task_ids)|list|length %}
+                {% if assigned_today_count > 0 %}
+                    {% set completion_rate = (completed_today_count / assigned_today_count * 100) | round(0, 'floor') %}
+                {% else %}
+                    {% set completion_rate = 0 %}
+                {% endif %}
+                <p class="completion-rate">完了率: {{ completion_rate }}% ({{ completed_today_count }}/{{ assigned_today_count }})</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: {{ completion_rate }}%;"></div>
+                </div>
+            </div>
+            <div class="task-list-container">
+                {% if tasks %}
+                    <div class="task-list">
+                        {% for task in tasks %}
+                            <div class="task-card {% if task.task_id in completed_task_ids %}completed{% elif task.task_id not in assigned_today_task_ids %}unassigned{% endif %}">
+                                <div class="task-card-header">
+                                    <h3 class="task-title">{{ task.title }}</h3>
+                                    {% if task.genre %}
+                                        <span class="task-badge">{{ task.genre.name }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if task.description %}
+                                    <p class="task-description">{{ task.description }}</p>
+                                {% endif %}
+                                <div class="task-card-actions">
+                                    {% if task.task_id in assigned_today_task_ids %}
+                                        {% if task.task_id not in completed_task_ids %}
+                                            <form method="POST" action="{{ url_for('complete_task', task_id=task.task_id) }}" style="flex: 1;">
+                                                <button type="submit" class="btn btn-sm btn-success" style="width: 100%;">完了</button>
+                                            </form>
+                                        {% else %}
+                                            <span class="btn btn-sm btn-completed">✓ 完了</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="btn btn-sm btn-disabled" title="このタスクは今日の曜日に割り当てられていません">割り当てなし</span>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="loadTaskDetail({{ task.task_id }})">詳細</button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-tasks">
+                        <p>今日のタスクはありません</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="sidebar-footer">
+                <button type="button" class="btn btn-block btn-create" onclick="loadCreateTaskForm()">新しいタスクを作成</button>
+            </div>
+        </aside>
+        
+        <!-- 右側：詳細表示エリア（70%） -->
+        <main class="main-content">
+            <div class="content-placeholder">
+                <h2>タスクを選択してください</h2>
+                <p>左側のリストからタスクを選択すると、詳細情報が表示されます。</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function loadTaskDetail(taskId) {
+            const mainContent = document.querySelector('.main-content');
+            mainContent.innerHTML = '<div class="loading">読み込み中...</div>';
+            
+            fetch(`/task/${taskId}`)
+                .then(response => response.text())
+                .then(html => {
+                    mainContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mainContent.innerHTML = '<div class="error">エラーが発生しました</div>';
+                });
+        }
+
+        function toggleEditMode() {
+            const viewMode = document.getElementById('view-mode');
+            const editMode = document.getElementById('edit-mode');
+            
+            if (!viewMode || !editMode) {
+                console.error('Edit/View mode elements not found');
+                return;
+            }
+            
+            if (editMode.style.display === 'none') {
+                viewMode.style.display = 'none';
+                editMode.style.display = 'block';
+            } else {
+                viewMode.style.display = 'block';
+                editMode.style.display = 'none';
+            }
+        }
+
+        function closeDetail() {
+            const mainContent = document.querySelector('.main-content');
+            mainContent.innerHTML = `
+                <div class="content-placeholder">
+                    <h2>タスクを選択してください</h2>
+                    <p>左側のリストからタスクを選択すると、詳細情報が表示されます。</p>
+                </div>
+            `;
+        }
+
+        function loadCreateTaskForm() {
+            const mainContent = document.querySelector('.main-content');
+            mainContent.innerHTML = '<div class="loading">読み込み中...</div>';
+            
+            fetch(`{{ url_for('create_task') }}`)
+                .then(response => response.text())
+                .then(html => {
+                    mainContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mainContent.innerHTML = '<div class="error">エラーが発生しました</div>';
+                });
+        }
+
+        function closeErrorBanner() {
+            const errorBanner = document.getElementById('errorBanner');
+            if (errorBanner) {
+                errorBanner.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

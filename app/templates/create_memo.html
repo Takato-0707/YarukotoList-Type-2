@@ -1,0 +1,61 @@
+<div class="task-detail-wrapper">
+    <div class="task-detail-header">
+        <h2>新しいタスクを作成</h2>
+        <button type="button" class="close-detail" onclick="closeDetail()">×</button>
+    </div>
+    
+    <div class="task-detail-content">
+        <form method="POST" action="{{ url_for('create_task') }}" id="create-form">
+            <div class="form-group">
+                <label for="title">タイトル</label>
+                <input type="text" id="title" name="title" placeholder="タスクのタイトルを入力してください" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">説明</label>
+                <textarea id="description" name="description" rows="4" placeholder="タスクの説明を入力してください（任意）"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="genre_id">ジャンル</label>
+                <select id="genre_id" name="genre_id" required>
+                    <option value="">選択してください</option>
+                    {% for genre in genres %}
+                        <option value="{{ genre.genre_id }}">{{ genre.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>曜日指定</label>
+                <div class="checkbox-group">
+                    {% set weekday_names = ['月', '火', '水', '木', '金', '土', '日'] %}
+                    {% for i in range(7) %}
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="weekdays" value="{{ i }}">
+                            {{ weekday_names[i] }}曜日
+                        </label>
+                    {% endfor %}
+                </div>
+                <p class="form-help">※ タスクを実行する曜日を選択してください</p>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">作成</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDetail()">キャンセル</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function closeDetail() {
+    const mainContent = document.querySelector('.main-content');
+    mainContent.innerHTML = `
+        <div class="content-placeholder">
+            <h2>タスクを選択してください</h2>
+            <p>左側のリストからタスクを選択すると、詳細情報が表示されます。</p>
+        </div>
+    `;
+}
+</script>
